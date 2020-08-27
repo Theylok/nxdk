@@ -7,10 +7,5 @@ else
     NUMCORES=$(nproc)
 fi
 
-cd samples
-for dir in */
-do
-    cd "$dir"
-    make -j${NUMCORES}
-    cd ..
-done
+cmake -B build -DNXDK_BUILD_SAMPLES=ON .
+cmake --build . -- -j${NUMCORES}
