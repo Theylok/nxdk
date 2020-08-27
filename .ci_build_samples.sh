@@ -8,4 +8,4 @@ else
 fi
 
 cmake -B build -DNXDK_BUILD_SAMPLES=ON .
-cmake --build . -- -j${NUMCORES}
+cmake --build build/ -- -j${NUMCORES}

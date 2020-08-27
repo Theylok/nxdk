@@ -57,6 +57,29 @@ function(add_xbox_executable name sources)
         nxdk
         ${NXDK_DIR}/lib/xboxkrnl/libxboxkrnl.lib
     )
+
+    set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${name})
+    get_target_property(output_directory ${name} RUNTIME_OUTPUT_DIRECTORY)
+    set(xiso_directory ${output_directory}/xiso)
+
+    add_custom_target(build_xbe
+        ALL
+        COMMAND mkdir -p ${xiso_directory}
+        COMMAND ${CMAKE_BINARY_DIR}/bin/cxbe -OUT:${xiso_directory}/${name}.xbe -TITLE:${name} ${name}
+        BYPRODUCTS ${xiso_directory}/${name}.xbe
+        WORKING_DIRECTORY ${output_directory}
+    )
+
+    add_dependencies(build_xbe ${name})
+
+    add_custom_target(build_xiso
+        ALL
+        COMMAND ${CMAKE_BINARY_DIR}/bin/extract-xiso -c ${xiso_directory} ${name}.iso
+        BYPRODUCTS ${output_directory}/${name}.iso
+        WORKING_DIRECTORY ${output_directory}
+    )
+
+    add_dependencies(build_xiso build_xbe)
 endfunction()
 
 # Libs
@@ -67,3 +90,13 @@ option(NXDK_BUILD_SAMPLES OFF)
 if (NXDK_BUILD_SAMPLES)
     add_subdirectory(samples)
 endif()
+
+# Tools
+set(TOOLS_BINARY_DIR ${CMAKE_BINARY_DIR}/tools/)
+
+add_custom_target(tools
+    ALL
+    COMMAND mkdir -p ${TOOLS_BINARY_DIR}
+    COMMAND cmake -B ${TOOLS_BINARY_DIR} -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${CMAKE_BINARY_DIR}/bin" ${CMAKE_CURRENT_LIST_DIR}/tools/
+    COMMAND cmake --build ${TOOLS_BINARY_DIR} -- -j1
+)
