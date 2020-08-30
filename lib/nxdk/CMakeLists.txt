@@ -8,6 +8,7 @@ target_link_libraries(
     nxdk
     PUBLIC  project_options
             hal
+            libc++
             libjpeg
             libpng
             net

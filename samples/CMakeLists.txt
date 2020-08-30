@@ -1,3 +1,6 @@
+add_subdirectory(gamma)
+add_subdirectory(gamma-fade)
 add_subdirectory(hello)
+add_subdirectory(hello++)
 add_subdirectory(httpd)
 add_subdirectory(sdl)

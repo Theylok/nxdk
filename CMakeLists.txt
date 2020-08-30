@@ -9,28 +9,27 @@ if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Linux")
     set(CMAKE_CXX_COMPILER "clang++")
     set(CMAKE_C_LINK_EXECUTABLE "lld -flavor link <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
     set(CMAKE_CXX_LINK_EXECUTABLE "lld -flavor link <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
-elseif (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
-    message("-- Building on MacOS")
-
-    set(NXDK_DARWIN ON)
-
-    set(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
-    set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
-    set(CMAKE_C_LINK_EXECUTABLE "/usr/local/opt/llvm/bin/lld -flavor link <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
-    set(CMAKE_CXX_LINK_EXECUTABLE "/usr/local/opt/llvm/bin/lld -flavor link <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
-elseif (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows" AND ${CMAKE_GENERATOR} MATCHES "MinGW Makefiles")
-    message("-- Building on MinGW")
-
-    set(NXDK_MINGW TRUE)
-
-    set(CMAKE_C_COMPILER "clang")
-    set(CMAKE_CXX_COMPILER "clang++")
-    set(CMAKE_C_LINK_EXECUTABLE "lld-link <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
-    set(CMAKE_CXX_LINK_EXECUTABLE "lld-link <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+#elseif (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
+#    message("-- Building on MacOS")
+#
+#    set(NXDK_DARWIN ON)
+#
+#    set(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
+#    set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
+#    set(CMAKE_C_LINK_EXECUTABLE "/usr/local/opt/llvm/bin/lld -flavor link <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+#    set(CMAKE_CXX_LINK_EXECUTABLE "/usr/local/opt/llvm/bin/lld -flavor link <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+#elseif (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")# AND ${CMAKE_GENERATOR} MATCHES "MinGW Makefiles")
+#    message("-- Building on MinGW")
+#
+#    set(NXDK_MINGW TRUE)
+#
+#    set(CMAKE_C_COMPILER "clang")
+#    set(CMAKE_CXX_COMPILER "clang++")
+#    set(CMAKE_C_LINK_EXECUTABLE "lld-link <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+#    set(CMAKE_CXX_LINK_EXECUTABLE "lld-link <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
 else()
     message(FATAL_ERROR "Host system '${CMAKE_HOST_SYSTEM_NAME}' or generator '${CMAKE_GENERATOR}' not supported!")
 endif()
-
 
 project(NXDK LANGUAGES C CXX)
 
@@ -65,12 +64,6 @@ target_link_options(
                 -include:__fltused
                 -include:__xlibc_check_stack
 )
-if (NXDK_MINGW)
-    target_link_options(
-        project_options
-        INTERFACE   -threads:no
-    )
-endif()
 
 target_include_directories(
     project_options
