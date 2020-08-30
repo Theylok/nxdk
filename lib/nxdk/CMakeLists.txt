@@ -10,6 +10,7 @@ target_link_libraries(
             hal
             libjpeg
             libpng
+            net
             pbkit
             pdclib
             SDL2

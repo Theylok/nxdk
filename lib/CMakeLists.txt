@@ -1,6 +1,7 @@
 add_subdirectory(hal)
 add_subdirectory(libjpeg)
 add_subdirectory(libpng)
+add_subdirectory(net)
 add_subdirectory(nxdk)
 add_subdirectory(pbkit)
 
