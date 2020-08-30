@@ -15,6 +15,7 @@ target_link_libraries(
             SDL2
             SDL_ttf
             SDL2_image
+            usb
             winapi
             xboxrt
 )

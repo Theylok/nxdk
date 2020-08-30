@@ -24,6 +24,7 @@ target_link_libraries(
 )
 
 add_subdirectory(sdl)
+add_subdirectory(usb)
 add_subdirectory(winapi)
 add_subdirectory(xboxrt)
 add_subdirectory(zlib)

@@ -1,8 +1,3 @@
-add_xbox_executable(hello
+add_xbox_executable(hello_sample
     main.c
-)
-
-target_link_libraries(
-    hello
-    project_options
 )
