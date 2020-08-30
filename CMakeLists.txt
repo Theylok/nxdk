@@ -1,9 +1,36 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(CMAKE_C_COMPILER "clang")
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_C_LINK_EXECUTABLE "lld -flavor link <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
-set(CMAKE_CXX_LINK_EXECUTABLE "lld -flavor link <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Linux")
+    message("-- Building on Linux")
+
+    set(NXDK_LINUX ON)
+
+    set(CMAKE_C_COMPILER "clang")
+    set(CMAKE_CXX_COMPILER "clang++")
+    set(CMAKE_C_LINK_EXECUTABLE "lld -flavor link <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+    set(CMAKE_CXX_LINK_EXECUTABLE "lld -flavor link <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+elseif (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
+    message("-- Building on MacOS")
+
+    set(NXDK_DARWIN ON)
+
+    set(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
+    set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
+    set(CMAKE_C_LINK_EXECUTABLE "/usr/local/opt/llvm/bin/lld -flavor link <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+    set(CMAKE_CXX_LINK_EXECUTABLE "/usr/local/opt/llvm/bin/lld -flavor link <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+elseif (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows" AND ${CMAKE_GENERATOR} MATCHES "MinGW Makefiles")
+    message("-- Building on MinGW")
+
+    set(NXDK_MINGW TRUE)
+
+    set(CMAKE_C_COMPILER "clang")
+    set(CMAKE_CXX_COMPILER "clang++")
+    set(CMAKE_C_LINK_EXECUTABLE "lld-link <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+    set(CMAKE_CXX_LINK_EXECUTABLE "lld-link <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> /out:<TARGET> <LINK_LIBRARIES>")
+else()
+    message(FATAL_ERROR "Host system '${CMAKE_HOST_SYSTEM_NAME}' or generator '${CMAKE_GENERATOR}' not supported!")
+endif()
+
 
 project(NXDK LANGUAGES C CXX)
 
@@ -38,6 +65,12 @@ target_link_options(
                 -include:__fltused
                 -include:__xlibc_check_stack
 )
+if (NXDK_MINGW)
+    target_link_options(
+        project_options
+        INTERFACE   -threads:no
+    )
+endif()
 
 target_include_directories(
     project_options
@@ -58,45 +91,67 @@ function(add_xbox_executable name sources)
         ${NXDK_DIR}/lib/xboxkrnl/libxboxkrnl.lib
     )
 
-    set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${name})
-    get_target_property(output_directory ${name} RUNTIME_OUTPUT_DIRECTORY)
+    set(output_directory ${CMAKE_BINARY_DIR}/bin/${name}/)
+
+    set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${output_directory})
     set(xiso_directory ${output_directory}/xiso)
 
-    add_custom_target(build_xbe
+    add_custom_target(run_cxbe_${name}
         ALL
         COMMAND mkdir -p ${xiso_directory}
-        COMMAND ${CMAKE_BINARY_DIR}/bin/cxbe -OUT:${xiso_directory}/${name}.xbe -TITLE:${name} ${name}
+        COMMAND ${CMAKE_BINARY_DIR}/bin/cxbe -OUT:${xiso_directory}/default.xbe -TITLE:${name} ${name}
         BYPRODUCTS ${xiso_directory}/${name}.xbe
         WORKING_DIRECTORY ${output_directory}
+        DEPENDS ${name} cxbe
     )
 
-    add_dependencies(build_xbe ${name})
-
-    add_custom_target(build_xiso
+    add_custom_target(run_extract-xiso_${name}
         ALL
         COMMAND ${CMAKE_BINARY_DIR}/bin/extract-xiso -c ${xiso_directory} ${name}.iso
         BYPRODUCTS ${output_directory}/${name}.iso
         WORKING_DIRECTORY ${output_directory}
+        DEPENDS run_cxbe_${name} extract-xiso
     )
-
-    add_dependencies(build_xiso build_xbe)
 endfunction()
 
 # Libs
-add_subdirectory(lib)
+option(NXDK_BUILD_LIBS "" ON)
+if(NXDK_BUILD_LIBS)
+    add_subdirectory(lib)
+endif()
 
 # Samples
-option(NXDK_BUILD_SAMPLES OFF)
+option(NXDK_BUILD_SAMPLES "" ON)
 if (NXDK_BUILD_SAMPLES)
     add_subdirectory(samples)
 endif()
 
 # Tools
-set(TOOLS_BINARY_DIR ${CMAKE_BINARY_DIR}/tools/)
+option(NXDK_BUILD_TOOLS "" ON)
+if (NXDK_BUILD_TOOLS)
+    # cxbe
+    set(CXBE_BINARY_DIR ${CMAKE_BINARY_DIR}/tools/cxbe)
+    if (NXDK_MINGW)
+        set(CXBE_OPTIONS "-G \"MinGW Makefiles\"")
+    endif()
+    
+    add_custom_target(cxbe
+        ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CXBE_BINARY_DIR}
+        COMMAND ${CMAKE_COMMAND} -B ${CXBE_BINARY_DIR} ${CXBE_OPTIONS} -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${CMAKE_BINARY_DIR}/bin" ${CMAKE_CURRENT_LIST_DIR}/tools/cxbe
+        COMMAND ${CMAKE_COMMAND} --build ${CXBE_BINARY_DIR}
+    )
 
-add_custom_target(tools
-    ALL
-    COMMAND mkdir -p ${TOOLS_BINARY_DIR}
-    COMMAND cmake -B ${TOOLS_BINARY_DIR} -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${CMAKE_BINARY_DIR}/bin" ${CMAKE_CURRENT_LIST_DIR}/tools/
-    COMMAND cmake --build ${TOOLS_BINARY_DIR} -- -j1
-)
+    # extract-iso
+    set(XISO_BINARY_DIR ${CMAKE_BINARY_DIR}/tools/extract-xiso)
+    if (NXDK_MINGW)
+        set(XISO_OPTIONS "-G \"MinGW Makefiles\"")
+    endif()
+
+    add_custom_target(extract-xiso
+        ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${XISO_BINARY_DIR}
+        COMMAND ${CMAKE_COMMAND} -B ${XISO_BINARY_DIR} ${XISO_OPTIONS} -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${CMAKE_BINARY_DIR}/bin" ${CMAKE_CURRENT_LIST_DIR}/tools/extract-xiso
+        COMMAND ${CMAKE_COMMAND} --build ${XISO_BINARY_DIR}
+    )
+endif()
