@@ -1,3 +1,4 @@
-add_xbox_executable(sdl_sample
-    main.c
+add_xbox_executable(
+    NAME    sdl_sample
+    SOURCES main.c
 )

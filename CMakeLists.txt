@@ -83,34 +83,38 @@ target_include_directories(
                 lib/xboxrt/vcruntime
 )
 
-function(add_xbox_executable name sources)
-    add_executable(${name} ${sources})
+function(add_xbox_executable)
+    set(one_value_keywords NAME)
+    set(multi_value_keywords SOURCES)
+    cmake_parse_arguments(ADD_XBOX_EXECUTABLE "" "${one_value_keywords}" "${multi_value_keywords}" ${ARGN})
+
+    add_executable(${ADD_XBOX_EXECUTABLE_NAME} ${ADD_XBOX_EXECUTABLE_SOURCES})
     target_link_libraries(
-        ${name}
+        ${ADD_XBOX_EXECUTABLE_NAME}
         nxdk
         ${NXDK_DIR}/lib/xboxkrnl/libxboxkrnl.lib
     )
 
-    set(output_directory ${CMAKE_BINARY_DIR}/bin/${name}/)
+    set(output_directory ${CMAKE_BINARY_DIR}/bin/${ADD_XBOX_EXECUTABLE_NAME}/)
 
-    set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${output_directory})
+    set_target_properties(${ADD_XBOX_EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${output_directory})
     set(xiso_directory ${output_directory}/xiso)
 
-    add_custom_target(run_cxbe_${name}
+    add_custom_target(run_cxbe_${ADD_XBOX_EXECUTABLE_NAME}
         ALL
         COMMAND mkdir -p ${xiso_directory}
-        COMMAND ${CMAKE_BINARY_DIR}/bin/cxbe -OUT:${xiso_directory}/default.xbe -TITLE:${name} ${name}
-        BYPRODUCTS ${xiso_directory}/${name}.xbe
+        COMMAND ${CMAKE_BINARY_DIR}/bin/cxbe -OUT:${xiso_directory}/default.xbe -TITLE:${ADD_XBOX_EXECUTABLE_NAME} ${ADD_XBOX_EXECUTABLE_NAME}
+        BYPRODUCTS ${xiso_directory}/${ADD_XBOX_EXECUTABLE_NAME}.xbe
         WORKING_DIRECTORY ${output_directory}
-        DEPENDS ${name} cxbe
+        DEPENDS ${ADD_XBOX_EXECUTABLE_NAME} cxbe
     )
 
-    add_custom_target(run_extract-xiso_${name}
+    add_custom_target(run_extract-xiso_${ADD_XBOX_EXECUTABLE_NAME}
         ALL
-        COMMAND ${CMAKE_BINARY_DIR}/bin/extract-xiso -c ${xiso_directory} ${name}.iso
-        BYPRODUCTS ${output_directory}/${name}.iso
+        COMMAND ${CMAKE_BINARY_DIR}/bin/extract-xiso -c ${xiso_directory} ${ADD_XBOX_EXECUTABLE_NAME}.iso
+        BYPRODUCTS ${output_directory}/${ADD_XBOX_EXECUTABLE_NAME}.iso
         WORKING_DIRECTORY ${output_directory}
-        DEPENDS run_cxbe_${name} extract-xiso
+        DEPENDS run_cxbe_${ADD_XBOX_EXECUTABLE_NAME} extract-xiso
     )
 endfunction()
 
